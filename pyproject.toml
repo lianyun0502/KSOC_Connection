@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "ksoc-connection"
+name = "ksoc_connection"
 version = "0.1.0"
 description = "Develop for KKT SoC connection"
 authors = ["y"]

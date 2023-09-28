@@ -1,8 +1,9 @@
 import time
 from enum import Enum
 from typing import Any, Union, Optional, Tuple, Dict, Callable, TypeVar, Generic, Type, cast, NewType, Sequence
-from packet import Packet, Command, Direction, get_CDC_packet
-from connection import *
+from .packet import Packet, Command, Direction, get_CDC_packet
+from .connection import *
+
 
 class KKTClassStatus(Enum):
     KKT_SUCCESS = 0

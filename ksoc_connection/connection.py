@@ -1,9 +1,9 @@
 import socket
 from typing import Any, Union, Optional
-from VComPort import KKTVComPort
-from backend import ThreadBackend as Backend
+from .VComPort import KKTVComPort
+from .backend import ThreadBackend as Backend
 from queue import Queue, Empty
-from packet import Packet, Command, Direction, get_CDC_packet
+from .packet import Packet, Command, Direction, get_CDC_packet
 
 class TimeoutException(Exception):
     pass

@@ -1,4 +1,4 @@
-from ksoc_wifi_connection.packet import Packet, get_CDC_packet, calculate_checksum
+from ksoc_connection import Packet, get_CDC_packet, calculate_checksum
 
 def test_packet():
     packet = Packet(direction='>', command=0x01, payload_length=0, payload=b'', checksum=0x00)

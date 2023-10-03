@@ -1,6 +1,6 @@
 import sys
 from multiprocessing import Process
-from queue import Queue
+from queue import Queue,LifoQueue
 from threading import Thread, Event
 import socket
 import time

@@ -11,7 +11,7 @@ library for kaikutek SoC SDK. It provides a set of functions to establish and ma
     * Initial release
 
 ## Installation
-To use this library, you can either clone the repository and create environment with Poetry, or you can install it using pipcommand .
+To use this library, you can either clone the repository and create environment with Poetry, or you can install it using pip command in a environment recommand using ``Python 3.8.9``
 
 * **Clone the repository**
 
@@ -32,7 +32,6 @@ To use this library, you can either clone the repository and create environment 
 
 * **Install using pip**
 
-    This will install the library and its dependencies in a virtual environment using Python 3.8.9.
     To install using pip, navigate to the ksoc_connection directory and run the following command:
 
     ```shell

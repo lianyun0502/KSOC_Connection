@@ -1,24 +1,27 @@
-from __future__ import annotations
 import socket
 import sys
 import time
-import typing
+from ksoc_connection.backend import ThreadBackend
+from typing import Any, Union, Optional, Dict, Tuple
+import atexit
 
-HOST = '0.0.0.0'
+
+
+SERVER_HOST = '0.0.0.0'
 PORT = 7000
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind((HOST, PORT))
+server.bind((SERVER_HOST, PORT))
 server.listen(5)
 
 
-print('server start at: %s:%s' % (HOST, PORT))
+print('server start at: %s:%s' % (SERVER_HOST, PORT))
 print('wait for connection...')
 
 conn, addr = server.accept()
 print(f'connected by {str(addr)}')
 
-def handler_accept(conn:socket)->typing.Any:
+def handler_accept(conn:socket)->Any:
     in_data = conn.recv(1024)
     print(f'recv: {in_data}')
     if type(in_data) == bytes:
@@ -52,4 +55,32 @@ while True:
 
 
 
-sys.exit(server.close())
+atexit.register(server.close)
+
+if __name__ == '__main__':
+    HOST = '192.168.1.106'
+    PORT = 7000
+    porto = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    p = ThreadBackend(porto)
+    atexit.register(p.stop)
+    p.connect(HOST, PORT)
+    while True:
+        text = input('input')
+        if text == 'aa':
+            p.send(b'\xaa')
+            for i in range(10):
+                data = p.recv(response_only=True)
+                print(f'response of request:\n{data}')
+        if text == 'bb':
+            p.send(b'\xbb', cmd=0xbb)
+            data = p.recv()
+            print(f'response of request:\n{data}')
+        elif text.lower() == 'q':
+            p.send('q'.encode('utf-8'))
+            break
+        else:
+            p.send(text.encode('utf-8'))
+
+    print('end')
+    p.stop()
+    sys.exit()

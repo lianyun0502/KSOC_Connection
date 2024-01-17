@@ -6,6 +6,7 @@ import win32event
 import serial
 import serial.tools.list_ports
 from typing import Optional
+from .logger import log
 
 @dataclass
 class VirtualInfo:
@@ -21,7 +22,9 @@ class KKTVComPort:
     )
 
     def __init__(self):
+        log.info('KKTVComPort init')
         self.py_handle = None
+
         pass
 
     def connect(self, port: str):
@@ -35,7 +38,7 @@ class KKTVComPort:
             None
         )
         if self.py_handle.handle != 0:
-            print(f'py_handle = {self.py_handle}')
+            log.debug(f'py_handle = {self.py_handle}')
         # Clear buffers:
         # Remove anything that was there
         win32file.PurgeComm(self.py_handle,
@@ -54,7 +57,7 @@ class KKTVComPort:
         if self.py_handle.handle:
             self.clear_RX_queue()
             self.py_handle.close()  # 清除序列通訊物件
-            print('Close！')
+            log.info('serial com port closed')
 
     def send(self, data: bytes):
         if self.py_handle.handle:
@@ -71,7 +74,7 @@ class KKTVComPort:
 
             if com_state.cbInQue > 0:
                 win32file.ReadFile(self.py_handle, com_state.cbInQue)
-                print(f'clear {com_state.cbInQue} bytes')
+                log.debug(f'clear {com_state.cbInQue} bytes')
                 return True
 
         return False
@@ -106,9 +109,9 @@ class KKTVComPort:
         ports = serial.tools.list_ports.comports()
         KKT_ports = []
         for port in sorted(ports):
-            print(f"{port.device}: {port.description} [{port.hwid}]")
             for info in KKTVComPort.info_list:
                 if info.vid == port.vid and info.pid == port.pid:
+                    log.debug(f"{port.device}: {port.description} [{port.hwid}]")
                     KKT_ports.append(port)
                     break
         return KKT_ports

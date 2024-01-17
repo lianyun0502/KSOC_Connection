@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, Union, Optional, Tuple, Dict, Callable, TypeVar, Generic, Type, cast, NewType, Sequence
 from .packet import Packet, Command, Direction, get_CDC_packet
 from .connection import KKTVComPortConnection,KKTWIFIConnection, KKTConnection
-
+from .logger import log
 
 class KKTClassStatus(Enum):
     KKT_SUCCESS = 0
@@ -47,7 +47,7 @@ class KKTClassStatus(Enum):
     KKT_ERROR_DEVICE_CONFIG_FAILED = 37
     KKT_ERROR_DATA_NOT_READY = 38
     KKT_ERROR_CMD_ERROR = 39
-    KKT_ERROR_USUALLY_FOR_RECIVING_TIMEOUT = 40
+    KKT_ERROR_USUALLY_FOR_RECEIVING_TIMEOUT = 40
     KKT_ERROR_WIN_API_WRITE_FILE = 41
     KKT_ERROR_WIN_API_READ_FILE = 42
     KKT_ERROR_WIN_API_READ_ZERO_SIZE = 43
@@ -58,16 +58,25 @@ class KKTClassStatus(Enum):
     KKT_ERROR_EFUSE_FT_FAIL = 48
 
 class KKTIntegration:
+    '''API layer for KKT device.'''
     def __init__(self, connection:KKTConnection):
         self.connection = connection
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.disconnectDevice()
+
     def __del__(self):
         self.disconnectDevice()
+
     def connectDevice(self, *args, **kwargs)->KKTClassStatus:
+        '''Connect to KKT device.'''
         try:
             self.connection.connect(*args, **kwargs)
         except Exception as e:
-            print(e)
+            log.warning(e)
             return KKTClassStatus.KKT_ERROR_DRIVER_INIT_FAILED
 
         self.switchSPIChannel(1)
@@ -75,6 +84,7 @@ class KKTIntegration:
         return KKTClassStatus.KKT_SUCCESS
 
     def disconnectDevice(self)->KKTClassStatus:
+        '''Disconnect from KKT device.'''
         try:
             self.connection.close()
         except Exception as e:
@@ -82,8 +92,15 @@ class KKTIntegration:
             return KKTClassStatus.KKT_ERROR_DRIVER_INIT_FAILED
         return KKTClassStatus.KKT_SUCCESS
 
-    def setCustomCDCPacket(self, direction:bytes, command:bytes, payload_len:bytes, payload:bytes)->Tuple[KKTClassStatus, bytes]:
+    def setCustomCDCPacket(self,* ,direction:bytes, command:bytes, payload_len:bytes, payload:bytes)->Tuple[KKTClassStatus, bytes]:
+        '''Set custom CDC packet and get response.
 
+        Args:
+            direction (bytes): b'>' for request, b'<' for response
+            command (bytes): command code
+            payload_len (bytes): payload length
+            payload (bytes): payload
+        '''
         assert direction in [b'>', b'<'] and len(direction) == 1, f'direction must be ">" or "<", but got {direction}'
         assert len(command) == 1, f'command must be 1 byte, but got {command}'
         assert len(payload_len) == 2, f'payload_len must be 2 bytes, but got {payload_len}'
@@ -98,6 +115,11 @@ class KKTIntegration:
         return KKTClassStatus.KKT_SUCCESS, response.CDC_packet
 
     def switchSPIChannel(self, channel:int)->KKTClassStatus:
+        '''Switch SPI channel.
+
+        Args:
+            channel (int): SPI channel to switch. 0 for SPI0, 1 for SPI1.
+        '''
         request = Packet(direction=Direction.REQUEST.value, command=Command.SWITCH_SPI_CHANNEL.value, payload_length=4, payload=bytes([0,0,0,channel]))
         response = self.connection.sendCDCPacketWithResponse(request)
         if response.command != request.command:
@@ -105,24 +127,40 @@ class KKTIntegration:
         return KKTClassStatus.KKT_SUCCESS
 
     def getChipID(self)->Tuple[KKTClassStatus, str]:
+        '''Get chip ID.
+
+        Returns:
+            Tuple[KKTClassStatus, str]: KKTClassStatus, chip ID
+
+            Chip id will be like format K00000 00
+        '''
         request = Packet(direction=Direction.REQUEST.value, command=Command.GET_CHIP_ID.value, payload_length=0, payload=b'', checksum=0xF7)
         response = self.connection.sendCDCPacketWithResponse(request)
         return KKTClassStatus.KKT_SUCCESS, response.payload.decode('utf-8')
 
     def getFirmwareVersion(self)->Tuple[KKTClassStatus, str]:
+        '''Get firmware version.
+
+        Returns:
+            Tuple[KKTClassStatus, str]: KKTClassStatus, firmware version
+
+            Firmware version will be like format k00000-00000-000-v0.0.0
+        '''
         request = Packet(direction=Direction.REQUEST.value, command=Command.GET_FIRMWARE_VERSION.value, payload_length=0, payload=b'', checksum=0xF7)
         response = self.connection.sendCDCPacketWithResponse(request)
         return KKTClassStatus.KKT_SUCCESS, response.payload.decode('utf-8')
 
     def setPowerSavingMode(self, mode:int)->KKTClassStatus:
-        '''
-        mode:
-            0: Disable Mode
-            1: Sniff Mode
-            2: Gesture Mode
-            3: Motion Mode
-            4: Stop Mode (Sleep Mode)
-            5: Deep Sleep Mode
+        '''Set power saving mode.
+
+        Args:
+            mode:
+                0: Disable Mode
+                1: Sniff Mode
+                2: Gesture Mode
+                3: Motion Mode
+                4: Stop Mode (Sleep Mode)
+                5: Deep Sleep Mode
         '''
         request = Packet(direction=Direction.REQUEST.value, command=Command.SET_POWER_SAVING_MODE.value, payload_length=1, payload=bytes([mode]), checksum=0xF7)
         request.update_checksum()
@@ -132,6 +170,19 @@ class KKTIntegration:
         return KKTClassStatus.KKT_SUCCESS
 
     def getPowerSavingMode(self)->Tuple[KKTClassStatus, int]:
+        '''Get power saving mode.
+
+        Returns:
+            Tuple[KKTClassStatus, int]: KKTClassStatus, power saving mode
+
+            0: Disable Mode
+            1: Sniff Mode
+            2: Gesture Mode
+            3: Motion Mode
+            4: Stop Mode (Sleep Mode)
+            5: Deep Sleep Mode
+        '''
+
         request = Packet(direction=Direction.REQUEST.value, command=Command.GET_POWER_SAVING_MODE.value, payload_length=0, payload=b'', checksum=0xF7)
         response = self.connection.sendCDCPacketWithResponse(request)
         if response.command != request.command:
@@ -139,9 +190,10 @@ class KKTIntegration:
         return KKTClassStatus.KKT_SUCCESS, int.from_bytes(response.payload, byteorder='big', signed=False)
 
     def stopPowerStateMachine(self, on_stop:bool)->KKTClassStatus:
-        '''
-        :param is_stop: 0: Start, 1: Stop
-        :return:
+        '''Stop power state machine.
+
+        Args:
+            on_stop (bool): True for stop, False for resume.
         '''
         payload = on_stop.to_bytes(1, byteorder='big')
         request = Packet(direction=Direction.REQUEST.value, command=Command.STOP_POWER_STATE_MACHINE.value, payload_length=1, payload=payload, checksum=0xF7)
@@ -151,10 +203,19 @@ class KKTIntegration:
         return KKTClassStatus.KKT_SUCCESS
 
     def readHWRegister(self, addr:int)->Tuple[KKTClassStatus, int]:
+        '''Read hardware register.
 
+        Args:
+            addr (int): Register address.
+
+        Returns:
+            Tuple[KKTClassStatus, int]: KKTClassStatus, register value
+
+            register value will be 4 bytes like 0x0000_0000
+        '''
         payload = bytearray(8)
-        payload[:4] = addr.to_bytes(4, byteorder='big')
-        payload[4:] = 0x01.to_bytes(4, byteorder='big')
+        payload[:4] = addr.to_bytes(4, byteorder='big') # register address
+        payload[4:] = 0x01.to_bytes(4, byteorder='big') # number of register to read
 
         request = Packet(direction=Direction.REQUEST.value, command=Command.REG_READ.value, payload_length=8, payload=payload)
         response = self.connection.sendCDCPacketWithResponse(request)
@@ -163,6 +224,14 @@ class KKTIntegration:
         return KKTClassStatus.KKT_SUCCESS, int.from_bytes(response.payload, byteorder='big')
 
     def writeHWRegister(self, addr:int, value:int)->KKTClassStatus:
+        '''Write hardware register.
+
+        Args:
+            addr (int): Register address.
+            value (int): Register value.
+
+            Address and value must be 4 bytes like 0x0000_0000
+        '''
         request = Packet(direction=Direction.REQUEST.value, command=Command.REG_WRITE.value, payload_length=8, payload=addr.to_bytes(4, byteorder='little') + value.to_bytes(4, byteorder='little'), checksum=0xF7)
         response = self.connection.sendCDCPacketWithResponse(request)
         if response.command != request.command:
@@ -171,12 +240,28 @@ class KKTIntegration:
 
     def switchCollectionOfMultiResults(self,
                                        actions:int,
-                                       read_interrupt:int,
-                                       clear_interrupt:int,
-                                       raw_size:int,
-                                       ch_of_RBank:int,
+                                       *,
+                                       read_interrupt:int=0,
+                                       clear_interrupt:int=0,
+                                       raw_size:int=0,
+                                       ch_of_RBank:int=0b000,
                                        reg_address:Optional[Sequence[int]]=None,
                                        frame_setting:int=0)->KKTClassStatus:
+        '''Switch collection of multi results.
+
+        Args:
+            actions (int): Actions to do.
+                0b1: set raw size
+                0b10: set ch of RBank
+                0b100: set reg address
+                0b1000: set frame setting
+            read_interrupt (int): 0 for disable, 1 for enable
+            clear_interrupt (int): 0 for disable, 1 for enable
+            raw_size (int): raw data size, if parameter is 32 chirps and 128 samples, raw_size = (32*128+2)*2
+            ch_of_RBank (int): channel of RBank, pull up bit for RX(0b000)
+            reg_address (Optional[Sequence[int]], optional): list of register address.
+            frame_setting (int, optional): frame for sniff mode buffered.
+        '''
         payload_length = 5
         if actions & 0b1 == 1:
             payload_length += 2
@@ -225,20 +310,29 @@ class KKTIntegration:
         return KKTClassStatus.KKT_SUCCESS
 
     def getMultiResults(self)->Union[KKTClassStatus, Tuple[KKTClassStatus, Dict[int, bytes]]]:
-        response = self.connection.receiveCDCPacket(Command.GET_COLLECTION_OF_MULTI_RESULTS.value, response_only=True)
+        '''Get multi results.
+
+        Returns:
+            Union[KKTClassStatus, Tuple[KKTClassStatus, Dict[int, bytes]]]: KKTClassStatus, data dict
+
+            data dict key is action number, value is parsed data in byte array.
+
+        '''
+        response = self.connection.receiveCDCPacket(cmd=Command.GET_COLLECTION_OF_MULTI_RESULTS.value, response_only=True)
         response = get_CDC_packet(response)
+
         if response.command != Command.GET_COLLECTION_OF_MULTI_RESULTS.value:
             return KKTClassStatus.KKT_ERROR_REQUEST_FAILED
 
         # parsing
         actions = int.from_bytes(response.payload[1:4], byteorder='big')
-        print(f'actions : {bin(actions)}')
+        log.debug(f'actions : {bin(actions)}')
         offset = 5
         data_dict:Dict[int, bytes] = {}
         while offset < len(response.payload):
             action_num = int.from_bytes(response.payload[offset:offset+1], byteorder='big', signed=True)
             data_length = int.from_bytes(response.payload[offset+2:offset+4], byteorder='big', signed=True)
-            print(f'action_num : {action_num}, data_length : {data_length}')
+            log.debug(f'action_num : {action_num}, data_length : {data_length}')
             data = response.payload[offset+4:offset+4+data_length]
             data_dict.update({action_num: data})
             offset += 4 + data_length

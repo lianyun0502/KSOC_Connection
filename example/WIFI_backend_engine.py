@@ -1,7 +1,7 @@
 import socket
 import sys
 import time
-from ksoc_connection.backend import ThreadBackend
+from ksoc_connection.engine import ThreadBackend
 from typing import Any, Union, Optional, Dict, Tuple
 import atexit
 

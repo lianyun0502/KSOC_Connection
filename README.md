@@ -7,7 +7,12 @@ library for kaikutek SoC SDK. It provides a set of functions to establish and ma
 
 ## latest release
 
-* **0.0.1** - 2021-09-01
+* **0.1.1** - 2024-01-17
+    * add logger to the module
+    * add example "send_custom_command.py"
+    * add documentation for the module
+
+* **0.1.0** - 2023-09-01
     * Initial release
 
 ## Installation

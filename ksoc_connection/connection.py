@@ -61,12 +61,14 @@ class KKTConnection(metaclass=ABCMeta):
             try:
                 response = self.engine.recv(response_only=response_only, time_out=0.5)
             except Empty as error:
-                raise KKTConnectionException(f'response timeout')
-
+                log.debug(f'retry to receive CDC packet response: {i+1} time')
+                continue
             # check cmd
             if (response[3] == cmd) or (cmd == 0x00):
                 # print(f'recv: {response.hex(" ")}')
                 return response
+
+        raise KKTConnectionException(f'response timeout')
 
     def sendCDCPacketWithResponse(self, request:Packet) -> Packet:
         '''Send CDC packet (bytes) to KKT device and receive response.

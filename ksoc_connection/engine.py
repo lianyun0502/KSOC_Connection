@@ -39,17 +39,19 @@ class CDCCollection:
 
         # if start frame not found in temp_bytes, clear temp_bytes and return
         if offset == -1:
+            log.debug(f'start frame not found, data[0:3] == {self.temp_bytes[offset:3]}')
+            log.debug(f'data = {self.temp_bytes.hex(" ")}')
             self.init()
             return
-
-        # just double check if start frame is correct, not necessary
-        if self.temp_bytes[offset:offset + 3] != b'$K<':
-            raise Exception(f'start frame not found, data[0:3] == {self.temp_bytes[offset:3]}, data = {self.temp_bytes.hex(" ")}')
 
         # if start frame found, move pointer to start frame
         self.temp_bytes = self.temp_bytes[offset:]
         # print('0 get start frame')
         # offset = 0
+
+        # just double check if start frame is correct, not necessary
+        if self.temp_bytes[:3] != b'$K<':
+            raise Exception(f'header[0:3] invalid, data[0:3] == {self.temp_bytes[:3]}')
 
         # get payload length
         payload_length = int.from_bytes(self.temp_bytes[5:7], byteorder='big', signed=False)
@@ -59,7 +61,7 @@ class CDCCollection:
         if data_length >= 8 + payload_length:
             # print('data_length >= 8 + payload_length')
             CDC_packet = self.temp_bytes[:8 + payload_length]
-            log.debug(f'put packet len : {len(CDC_packet)}')
+            log.debug(f'get packet len : {len(CDC_packet)}')
             temp = self.temp_bytes[8 + payload_length:]
             self.init()
             self.temp_bytes = temp

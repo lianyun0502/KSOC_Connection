@@ -1,9 +1,11 @@
 from ksoc_connection import *
 import time
+from ksoc_connection.logger import log, logging
 
 HOST = '192.168.2.1'
 PORT = 80
 
+log.setLevel(logging.INFO)
 if __name__ == '__main__':
     with KKTIntegration(KKTVComPortConnection(timeout=1)) as integration:
         integration.connectDevice()

@@ -265,11 +265,11 @@ class KKTIntegration:
         payload_length = 5
         if actions & 0b1 == 1:
             payload_length += 2
-        if actions & 0b10 == 1:
+        if actions & 0b10 == 0b10:
             payload_length += 1
-        if actions & 0b100 == 1:
+        if actions & 0b100 == 0b100:
             payload_length += 4 * (len(reg_address) + 1)
-        if actions & 0b1000 == 1:
+        if actions & 0b1000 == 0b1000:
             payload_length += 2
 
         payload = bytearray(payload_length)
@@ -279,11 +279,11 @@ class KKTIntegration:
         if actions & 0b1 == 1:
             payload[offset:offset+2] = raw_size.to_bytes(2, byteorder='big')
             offset += 2
-        if actions & 0b10 == 1:
+        if actions & 0b10 == 0b10:
             payload[offset:offset+1] = ch_of_RBank.to_bytes(1, byteorder='big')
             offset += 1
 
-        if actions & 0b100 == 1:
+        if actions & 0b100 == 0b100:
             payload[offset:offset+2] = len(reg_address).to_bytes(2, byteorder='big')
             offset += 2
             interrupt = (read_interrupt & 0b1)<<4 + (clear_interrupt & 0b1)
@@ -293,7 +293,7 @@ class KKTIntegration:
                 payload[offset:offset+4] = reg.to_bytes(4, byteorder='big')
                 offset += 4
 
-        if actions & 0b1000 == 1:
+        if actions & 0b1000 == 0b1000:
             payload[offset:offset+2] = frame_setting.to_bytes(2, byteorder='big')
             offset += 2
 

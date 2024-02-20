@@ -285,7 +285,7 @@ class KKTIntegration:
 
         if actions & 0b100 == 0b100:
             payload[offset:offset+2] = len(reg_address).to_bytes(2, byteorder='big')
-            offset += 2
+            offset += 3
             interrupt = (read_interrupt & 0b1)<<4 + (clear_interrupt & 0b1)
             payload[offset:offset+1] = interrupt.to_bytes(1, byteorder='big')
             offset += 1

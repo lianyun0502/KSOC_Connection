@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ksoc_connection"
-version = "0.1.4"
+version = "0.1.5"
 description = "Develop for KKT SoC connection"
 authors = ["y"]
 readme = "README.md"

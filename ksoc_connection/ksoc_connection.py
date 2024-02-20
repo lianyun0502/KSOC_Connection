@@ -330,7 +330,7 @@ class KKTIntegration:
         offset = 5
         data_dict:Dict[int, bytes] = {}
         while offset < len(response.payload):
-            action_num = int.from_bytes(response.payload[offset:offset+1], byteorder='big', signed=True)
+            action_num = int.from_bytes(response.payload[offset+1:offset+2], byteorder='big', signed=True)
             data_length = int.from_bytes(response.payload[offset+2:offset+4], byteorder='big', signed=True)
             log.debug(f'action_num : {action_num}, data_length : {data_length}')
             data = response.payload[offset+4:offset+4+data_length]
